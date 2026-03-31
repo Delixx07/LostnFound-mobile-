@@ -1,30 +1,32 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 
-void main() => runApp(
-  MaterialApp(
-    home: Scaffold(
-      appBar: AppBar(
-        title: Text('My first App'),
-        centerTitle: true,
-        backgroundColor: Colors.red[600],
-      ),
-      body: Center(
-        child: Text(
-          'Hello, Ninjas!aaa',
-          style: TextStyle(
-            fontSize: 20.0,
-            fontWeight: FontWeight.bold,
-            color: Colors.grey[600],
-            letterSpacing: 2.0,
-            fontFamily: 'IndieFlower',
-          ),
+import 'package:pebebe/models/note_database.dart';
+import 'package:pebebe/pages/notes_page.dart';
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await NoteDatabase.initialize();
+
+  runApp(const MyApp());
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ChangeNotifierProvider(
+      create: (context) => NoteDatabase(),
+      child: MaterialApp(
+        debugShowCheckedModeBanner: false,
+        title: 'Notes App',
+        theme: ThemeData(
+          colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+          useMaterial3: true,
         ),
+        home: const NotesPage(),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {},
-        backgroundColor: Colors.red,
-        child: Text('Click'),
-      ),
-    ),
-  ),
-);
+    );
+  }
+}
