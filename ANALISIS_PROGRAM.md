@@ -1,66 +1,88 @@
 # 🔍 Overview Proyek: Lost & Found Kampus (PeBeBe)
 
-Selamat datang di *source code* aplikasi **Lost & Found Kampus (PeBeBe)**! Aplikasi ini dirancang agar mahasiswa bisa dengan mudah melaporkan barang yang hilang atau ditemukan di sekitar kampus.
+Selamat datang di *source code* aplikasi **Lost & Found Kampus (PeBeBe)**! Aplikasi ini dirancang untuk memecahkan masalah klasik di lingkungan kampus: barang yang hilang atau tertinggal. Dengan aplikasi ini, mahasiswa bisa dengan mudah melaporkan barang yang mereka temukan atau mencari barang mereka yang hilang.
 
-Di balik antarmukanya, aplikasi ini menggunakan kombinasi penyimpanan lokal dan *cloud* agar bisa berjalan dengan lancar (mendukung *offline-first*). Berikut adalah teknologi dan fitur yang ada di dalamnya:
-
----
-
-## 🌟 Fitur Utama & Teknologi
-
-1. **Penyimpanan Lokal (Offline-First) dengan SQLite**
-   Agar user tetap bisa membuat draft laporan saat tidak ada internet, aplikasi ini menggunakan database relasional lokal (SQLite). Semua operasi **CRUD** (Create, Read, Update, Delete) berjalan lancar di sini. Bahkan, struktur datanya berelasi antara tabel laporan dan tabel kategori (*Foreign Key*).
-
-2. **Sistem Akun Terintegrasi (Firebase Auth)**
-   Setiap pengguna memiliki data yang aman. Aplikasi ini menggunakan **Firebase Authentication** untuk fitur login dan registrasi berbasis email. Sesi pengguna juga dipertahankan secara otomatis, ditambah adanya sistem *Role-Based Access* untuk email `admin@gmail.com` yang bisa mengakses panel khusus admin.
-
-3. **Sinkronisasi Data ke Cloud (Firestore)**
-   Setelah laporan selesai dibuat secara lokal, pengguna bisa mengunggahnya ke server global. Di sini, **Firebase Firestore** (NoSQL) bertugas menyimpan dan mendistribusikan data laporan tersebut secara *real-time* ke semua mahasiswa lain di kampus melalui fitur "Daftar Publik".
-
-4. **Notifikasi Pintar (Real-time Notifications)**
-   Aplikasi ini memiliki sebuah *background listener* yang selalu mengecek status laporan pengguna di Firestore. Begitu ada barang yang statusnya berubah menjadi "Sudah Diambil", sistem langsung menembakkan **Local Push Notification** (lengkap dengan suara pop-up) menggunakan package *Awesome Notifications* untuk memberi tahu si pelapor.
-
-5. **Pemanfaatan Fitur HP (Kamera & Galeri)**
-   Sebuah laporan barang tentu butuh foto. Aplikasi ini memanfaatkan sumber daya *hardware smartphone* menggunakan *Image Picker*, di mana pengguna bisa langsung memotret barang memakai **Kamera** secara langsung atau mengambil gambar dari **Galeri** ponsel.
+Di balik antarmukanya yang sederhana, aplikasi ini menggunakan kombinasi penyimpanan lokal (*offline-first*) dan komputasi awan (*cloud*) agar bisa berjalan dengan responsif, handal, dan *real-time*. Berikut adalah rincian mendalam mengenai teknologi dan fitur yang ada di dalamnya:
 
 ---
 
-## 🧩 Arsitektur Program (MVC)
+## 🌟 Fitur Utama & Pemanfaatan Teknologi
 
-Aplikasi ini menggunakan pola desain **Model-View-Controller (MVC)** untuk memisahkan tampilan, logika, dan database:
+### 1. Penyimpanan Lokal (Offline-First) dengan Relational Database (SQLite)
+Aplikasi tidak selalu bergantung pada koneksi internet yang stabil. Untuk itu, kami merancang sistem **Offline-First**.
+* **Konsep CRUD Utuh:** Semua operasi Create, Read, Update, dan Delete dilakukan di penyimpanan lokal ponsel (menggunakan *package* `sqflite`) terlebih dahulu.
+* **Tabel Relasional:** Kami menerapkan konsep relasional antara tabel `items` (menyimpan detail laporan barang) dan tabel `categories` (menyimpan daftar kategori barang seperti Elektronik, Dokumen, dll). Ketika data ditampilkan, aplikasi melakukan *JOIN* agar id kategori berubah menjadi nama kategori yang mudah dibaca.
+* **Drafting System:** Fitur ini membuat pengguna bisa menyiapkan laporan beserta foto di tab "Draft Lokal" tanpa menghabiskan kuota internet, dan bebas merevisinya sebelum dipublikasikan.
+
+### 2. Sistem Autentikasi dan Manajemen Sesi (Firebase Auth)
+Setiap pengguna yang berinteraksi dengan aplikasi ini memiliki identitas yang aman dan terverifikasi.
+* **Keamanan Kredensial:** Aplikasi menggunakan **Firebase Authentication** untuk mengelola proses pendaftaran (Registrasi) dan Masuk (Login) menggunakan Email dan Password.
+* **State Persistence:** Sesi pengguna dipertahankan menggunakan metode `Stream` dari FirebaseAuth. Artinya, jika pengguna menutup aplikasi dan membukanya kembali besok, mereka tidak perlu repot-repot login ulang.
+* **Role-Based Access (Admin Panel):** Kami membuat jalur pintas otomatis khusus untuk peran admin. Jika ada yang *login* menggunakan kredensial `admin@gmail.com`, aplikasi akan langsung mengenalinya dan mengarahkan pengguna ke **Admin Panel**—sebuah layar khusus di mana admin memiliki kuasa penuh untuk melihat, menandai selesai, atau menghapus permanen setiap laporan yang ada di server.
+
+### 3. Sinkronisasi Data Global & Real-Time (Cloud Firestore)
+Setelah laporan selesai dibuat secara lokal, aplikasi mengizinkan pengguna untuk "menyinkronkan" (mengunggah) data tersebut ke server global.
+* **Arsitektur NoSQL Firestore:** Data diunggah ke koleksi `lost_items` di Firestore. Kami memilih Firestore karena kemampuannya dalam memproses data secara *real-time* ke semua perangkat yang terkoneksi.
+* **Pengkategorian Tampilan (Queries):** Di dalam aplikasi, data yang sudah di-sinkronisasi akan dihapus dari lokal, dan diklasifikasikan ke dua tempat menggunakan Query Firestore:
+  * **Laporan Saya:** Menggunakan filter Query `where('userId', isEqualTo: uid)` untuk hanya menampilkan laporan yang diunggah oleh pengguna tersebut.
+  * **Daftar Publik:** Menampilkan semua laporan barang dari semua pengguna, diurutkan berdasarkan waktu laporan agar informasi terbaru selalu berada di paling atas.
+
+### 4. Sistem Notifikasi Latar Belakang (Real-time Notifications)
+Bayangkan Anda melaporkan kehilangan dompet, dan keesokan harinya ada yang menemukannya. Bagaimana Anda bisa tahu tanpa harus mengecek aplikasi setiap saat?
+* **Real-time Listener:** Kami membuat `FirestoreListenerService` yang berjalan di latar belakang aplikasi. Servis ini secara konstan berlangganan (*subscribe*) pada data laporan pengguna yang sedang login.
+* **Trigger Otomatis:** Ketika ada barang yang statusnya diubah menjadi "Sudah Diambil" (`isAvailable: false`) oleh Admin atau Penemu, *listener* ini akan langsung menangkap perubahan data dari server seketika itu juga.
+* **Local Push Notification:** Sebagai respons, aplikasi langsung menembakkan **Notifikasi Lokal** ke layar ponsel (*Heads-up notification* dengan suara) menggunakan *package* Awesome Notifications, memberi tahu Anda bahwa laporan Anda telah diselesaikan.
+
+### 5. Pemanfaatan Hardware Smartphone (Kamera & Galeri)
+Aplikasi pelaporan barang tentu tidak lengkap tanpa bukti visual (foto). Kami memanfaatkan sumber daya perangkat keras (Hardware) pada ponsel menggunakan *Image Picker*.
+* **Akses Kamera Langsung:** Pengguna bisa langsung menyalakan **Kamera** dari dalam aplikasi untuk memotret dompet atau jam tangan yang baru saja mereka temukan di kelas.
+* **Akses Memori Lokal (Galeri):** Selain kamera, pengguna diberikan kebebasan untuk mengakses Galeri foto yang sudah ada di memori internal ponsel.
+* **Efisiensi Penyimpanan:** Agar beban aplikasi tetap ringan, gambar yang diambil dikompres dan dikonversi menjadi format *Base64 String* (teks murni) lalu disimpan langsung ke dalam kolom SQLite/Firestore, tanpa membebani penyimpanan *file storage* terpisah.
+
+---
+
+## 🧩 Arsitektur Program (Pola Desain MVC)
+
+Agar basis kode tetap rapi, mudah dibaca, dan mudah dikembangkan oleh tim kerja di masa depan, proyek ini disusun menggunakan arsitektur **Model-View-Controller (MVC)**. Berikut rinciannya:
+
 ```text
 lib/
-├── models/         # (Model) Struktur data & skema database
-├── screens/        # (View) Tampilan UI menggunakan Flutter Widgets
-├── providers/      # (Controller) Logika bisnis & State Management
-└── services/       # Komunikasi dengan database (SQLite, Firebase, dsb)
+├── models/         # (Model) Berisi struktur blueprint data (item_model.dart, category_model.dart). Di sinilah definisi tabel database berada.
+├── screens/        # (View) Berisi murni antarmuka pengguna (UI) yang dirancang menggunakan Flutter Widgets (auth_screen, home_screen, dll).
+├── providers/      # (Controller) Tempat segala logika bisnis dan State Management berada. Menjembatani View dan Data.
+└── services/       # (Data Layer) Tempat aplikasi berkomunikasi dengan "dunia luar", baik itu ke memori SQLite ponsel maupun ke Server Firebase.
 ```
 
-## 🌳 Gambaran Flutter Widget Tree
+## 🌳 Struktur Dasar Flutter Widget Tree
 
-Berikut adalah struktur dasar *Widget Tree* yang menyusun kerangka antarmuka aplikasi ini:
+Untuk mempermudah pemahaman tentang aliran UI (antarmuka), berikut adalah visualisasi *Widget Tree* utama dari aplikasi:
 
 ```text
-MyApp (Root)
- └── MultiProvider (Menyuntikkan AuthProvider & ItemProvider)
-      └── MaterialApp
-           └── AuthScreen (Jika belum login) / HomeScreen (Jika sudah login)
+MyApp (Akar Aplikasi)
+ └── MultiProvider (Menyuntikkan AuthProvider & ItemProvider ke seluruh lapisan UI)
+      └── MaterialApp (Pengatur Tema dan Navigasi Dasar)
+           └── Pengecekan Login:
                 │
-                ├── HomeScreen (Scaffold)
-                │    ├── AppBar (Header & Tombol Logout)
-                │    ├── Body (Tergantung Tab yang dipilih)
-                │    │    ├── Tab 0: Consumer<ItemProvider> (List Draft SQLite)
-                │    │    ├── Tab 1: StreamBuilder (List Laporan Saya - Firestore)
-                │    │    └── Tab 2: StreamBuilder (List Publik - Firestore)
-                │    │
-                │    ├── BottomNavigationBar (Navigasi Antar Tab)
-                │    │
-                │    └── FloatingActionButton (Tombol Tambah Laporan)
-                │         └── Navigasi ke AddItemScreen
+                ├── JIKA BELUM LOGIN: AuthScreen (Menampilkan form login)
                 │
-                └── AdminScreen (Khusus akun Admin)
-                     ├── StreamBuilder (Dashboard Statistik)
-                     └── ListView (Manajemen laporan publik)
+                └── JIKA SUDAH LOGIN:
+                     ├── Akun Admin (admin@gmail.com):
+                     │    └── AdminScreen (Scaffold)
+                     │         ├── StreamBuilder (Dashboard Statistik: Menunggu vs Selesai)
+                     │         └── Tab View: ListView.builder (Manajemen laporan publik)
+                     │
+                     └── Akun Mahasiswa Biasa:
+                          └── HomeScreen (Scaffold)
+                               ├── AppBar (Header & Tombol Logout)
+                               ├── Body (Tergantung Tab Navigasi Bawah)
+                               │    ├── Tab 0: Consumer<ItemProvider> (Daftar Draft dari SQLite)
+                               │    ├── Tab 1: StreamBuilder (Filter Laporan Saya dari Firestore)
+                               │    └── Tab 2: StreamBuilder (Feed Daftar Publik dari Firestore)
+                               │
+                               ├── BottomNavigationBar (Berpindah Tab)
+                               │
+                               └── FloatingActionButton (Tombol "+" Tambah Laporan)
+                                    └── Menavigasikan (Push) ke AddItemScreen (Input Form & Kamera)
 ```
 
-**Kesimpulan:** Seluruh sistem dari depan (UI) hingga ke belakang (Database & Server) sudah terhubung sepenuhnya! Aplikasi siap digunakan dan didemokan.
+**Kesimpulan:** Aplikasi Lost & Found ini bukan sekadar purwarupa UI. Seluruh fungsionalitas mulai dari sistem lokal (Offline), Manajemen Akun, Cloud Server, Integrasi Hardware, hingga Sistem Notifikasi latar belakang telah dipadukan menjadi sebuah ekosistem *production-ready* yang saling melengkapi.
