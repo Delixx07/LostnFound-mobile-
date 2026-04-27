@@ -1,69 +1,66 @@
-# Analisis Pemenuhan Rubrik Penilaian & Arsitektur
-**Nama Aplikasi:** Lost & Found Kampus (PeBeBe)
+# 🔍 Overview Proyek: Lost & Found Kampus (PeBeBe)
 
-Aplikasi ini telah dikembangkan dengan arsitektur **Model-View-Controller (MVC)** yang bersih dan terstruktur untuk memisahkan logika antarmuka, manajemen status, dan akses basis data.
+Selamat datang di *source code* aplikasi **Lost & Found Kampus (PeBeBe)**! Aplikasi ini dirancang agar mahasiswa bisa dengan mudah melaporkan barang yang hilang atau ditemukan di sekitar kampus.
 
-## 📂 Struktur Direktori (Architecture Tree)
-Berikut adalah struktur folder `lib/` yang menunjukkan pemisahan komponen (MVC):
+Di balik antarmukanya, aplikasi ini menggunakan kombinasi penyimpanan lokal dan *cloud* agar bisa berjalan dengan lancar (mendukung *offline-first*). Berikut adalah teknologi dan fitur yang ada di dalamnya:
+
+---
+
+## 🌟 Fitur Utama & Teknologi
+
+1. **Penyimpanan Lokal (Offline-First) dengan SQLite**
+   Agar user tetap bisa membuat draft laporan saat tidak ada internet, aplikasi ini menggunakan database relasional lokal (SQLite). Semua operasi **CRUD** (Create, Read, Update, Delete) berjalan lancar di sini. Bahkan, struktur datanya berelasi antara tabel laporan dan tabel kategori (*Foreign Key*).
+
+2. **Sistem Akun Terintegrasi (Firebase Auth)**
+   Setiap pengguna memiliki data yang aman. Aplikasi ini menggunakan **Firebase Authentication** untuk fitur login dan registrasi berbasis email. Sesi pengguna juga dipertahankan secara otomatis, ditambah adanya sistem *Role-Based Access* untuk email `admin@gmail.com` yang bisa mengakses panel khusus admin.
+
+3. **Sinkronisasi Data ke Cloud (Firestore)**
+   Setelah laporan selesai dibuat secara lokal, pengguna bisa mengunggahnya ke server global. Di sini, **Firebase Firestore** (NoSQL) bertugas menyimpan dan mendistribusikan data laporan tersebut secara *real-time* ke semua mahasiswa lain di kampus melalui fitur "Daftar Publik".
+
+4. **Notifikasi Pintar (Real-time Notifications)**
+   Aplikasi ini memiliki sebuah *background listener* yang selalu mengecek status laporan pengguna di Firestore. Begitu ada barang yang statusnya berubah menjadi "Sudah Diambil", sistem langsung menembakkan **Local Push Notification** (lengkap dengan suara pop-up) menggunakan package *Awesome Notifications* untuk memberi tahu si pelapor.
+
+5. **Pemanfaatan Fitur HP (Kamera & Galeri)**
+   Sebuah laporan barang tentu butuh foto. Aplikasi ini memanfaatkan sumber daya *hardware smartphone* menggunakan *Image Picker*, di mana pengguna bisa langsung memotret barang memakai **Kamera** secara langsung atau mengambil gambar dari **Galeri** ponsel.
+
+---
+
+## 🧩 Arsitektur Program (MVC)
+
+Aplikasi ini menggunakan pola desain **Model-View-Controller (MVC)** untuk memisahkan tampilan, logika, dan database:
 ```text
-lib
-├── main.dart
-├── firebase_options.dart
-├── models (Model)
-│   ├── category_model.dart
-│   └── item_model.dart
-├── providers (Controller / State Management)
-│   ├── auth_provider.dart
-│   └── item_provider.dart
-├── screens (View)
-│   ├── add_item_screen.dart
-│   ├── admin_screen.dart
-│   ├── auth_screen.dart
-│   ├── home_screen.dart
-│   └── item_detail_screen.dart
-└── services (Data Layer)
-    ├── firestore_listener_service.dart
-    ├── notification_service.dart
-    └── sqlite_service.dart
+lib/
+├── models/         # (Model) Struktur data & skema database
+├── screens/        # (View) Tampilan UI menggunakan Flutter Widgets
+├── providers/      # (Controller) Logika bisnis & State Management
+└── services/       # Komunikasi dengan database (SQLite, Firebase, dsb)
 ```
 
-**Penjelasan Arsitektur MVC:**
-* **Model (`lib/models/`):** Mendefinisikan struktur data seperti `Item` dan `Category`, dilengkapi dengan *factory method* untuk konversi dari/ke map (SQLite dan Firestore).
-* **View (`lib/screens/`):** Berisi antarmuka pengguna (UI) murni yang dibangun dengan Flutter widgets. Views mengambil data dengan mendengarkan (listening) ke *Providers*.
-* **Controller / ViewModel (`lib/providers/`):** Bertindak sebagai perantara logika bisnis. `item_provider.dart` dan `auth_provider.dart` menangani logika aplikasi, memproses permintaan dari UI, berinteraksi dengan *services*, dan memperbarui state agar UI merender ulang (*notifyListeners*).
-* **Data Layer / Services (`lib/services/`):** Menangani interaksi langsung dengan eksternal (SQLite, Firebase, Notifications) agar Controller tetap bersih.
+## 🌳 Gambaran Flutter Widget Tree
 
----
+Berikut adalah struktur dasar *Widget Tree* yang menyusun kerangka antarmuka aplikasi ini:
 
-## 🎯 Pemenuhan Rubrik Penilaian
+```text
+MyApp (Root)
+ └── MultiProvider (Menyuntikkan AuthProvider & ItemProvider)
+      └── MaterialApp
+           └── AuthScreen (Jika belum login) / HomeScreen (Jika sudah login)
+                │
+                ├── HomeScreen (Scaffold)
+                │    ├── AppBar (Header & Tombol Logout)
+                │    ├── Body (Tergantung Tab yang dipilih)
+                │    │    ├── Tab 0: Consumer<ItemProvider> (List Draft SQLite)
+                │    │    ├── Tab 1: StreamBuilder (List Laporan Saya - Firestore)
+                │    │    └── Tab 2: StreamBuilder (List Publik - Firestore)
+                │    │
+                │    ├── BottomNavigationBar (Navigasi Antar Tab)
+                │    │
+                │    └── FloatingActionButton (Tombol Tambah Laporan)
+                │         └── Navigasi ke AddItemScreen
+                │
+                └── AdminScreen (Khusus akun Admin)
+                     ├── StreamBuilder (Dashboard Statistik)
+                     └── ListView (Manajemen laporan publik)
+```
 
-### 1. CRUD with a Relational Database (10%)
-Fungsionalitas CRUD diimplementasikan secara penuh menggunakan **SQLite** (`lib/services/sqlite_service.dart`) sebagai basis data relasional lokal (Offline-First).
-* **Create:** Membuat "Draft Lokal" laporan yang disimpan ke tabel `items`.
-* **Read:** Laporan dibaca pada tab "Draft Lokal" (`home_screen.dart`). Terdapat *Foreign Key* ke tabel `categories` (Join tabel).
-* **Update:** Draft laporan dapat diedit bebas sebelum disinkronisasi ke server.
-* **Delete:** Draft laporan dapat dihapus secara permanen.
-
-### 2. Firebase Authentication (login, etc.) (5%)
-Sistem autentikasi terintegrasi secara penuh menggunakan **Firebase Auth** (`lib/providers/auth_provider.dart`).
-* **Register & Login:** Autentikasi dilakukan via *Email dan Password*.
-* **State Persistence:** Sesi login pengguna dipertahankan menggunakan `Stream` sehingga tidak perlu login berulang kali (`main.dart`).
-* **Role-Based Access (Admin):** Penggunaan email `admin@gmail.com` akan diarahkan otomatis ke halaman `admin_screen.dart` dengan *privilege* penuh (hapus/update semua laporan).
-
-### 3. Storing data in Firebase (5%)
-Aplikasi memanfaatkan **Cloud Firestore** sebagai penyimpanan data *real-time* berbasis NoSQL.
-* **Sinkronisasi (Sync):** Metode `syncToFirebase()` di `item_provider.dart` memindahkan data dari SQLite lokal ke koleksi `lost_items` di Firestore.
-* **Global Feed & My Reports:** Laporan publik ditampilkan untuk semua user, sedangkan laporan individu disaring khusus menggunakan klausa `.where('userId', isEqualTo: uid)`.
-
-### 4. Notifications (5%)
-Fitur notifikasi diimplementasikan menggunakan **Awesome Notifications** dan **Firestore Real-time Listeners** (`lib/services/firestore_listener_service.dart`).
-* **Real-time Listener:** Background service berlangganan (*subscribe*) pada *snapshot* koleksi Firestore milik pengguna.
-* **Notification Delivery:** Ketika status dokumen berubah (`isAvailable` menjadi `false` oleh Admin/Penemu), aplikasi memicu *Push Notification* (Local) yang muncul di atas layar (*Heads-up*) dengan bunyi.
-
-### 5. Using one smartphone resource (Camera/Gallery) (5%)
-Aplikasi memanggil sumber daya *hardware* melalui package **Image Picker** pada `add_item_screen.dart`.
-* **Kamera:** Membuka fungsi Kamera secara langsung untuk memotret barang penemuan secara *real-time*.
-* **Galeri:** Mengakses media penyimpanan (Galeri) ponsel. Gambar dikonversi dan disimpan ke dalam basis data sebagai format *base64 string* yang efisien, dan di-decode pada saat penayangan.
-
----
-**Kesimpulan:** Aplikasi telah selesai secara komprehensif, aman, *offline-ready*, terintegrasi cloud, dan siap didemokan.
+**Kesimpulan:** Seluruh sistem dari depan (UI) hingga ke belakang (Database & Server) sudah terhubung sepenuhnya! Aplikasi siap digunakan dan didemokan.
