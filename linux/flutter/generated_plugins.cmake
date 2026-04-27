@@ -3,7 +3,8 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
-  isar_flutter_libs
+  awesome_notifications
+  file_selector_linux
 )
 
 list(APPEND FLUTTER_FFI_PLUGIN_LIST

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "277898977053",
+    "project_id": "testing-firebase-pbb",
+    "storage_bucket": "testing-firebase-pbb.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:277898977053:android:87f63828299b6c1f7dcbf4",
+        "android_client_info": {
+          "package_name": "com.example.pebebe"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBReLPZOUjjgAGpGeMbFqEeth0hzeixrwk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
