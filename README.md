@@ -1,150 +1,87 @@
-# 📱 Flutter Demo App
+# 🔍 Overview Proyek: Lost & Found Kampus
 
-A simple Flutter application demonstrating core widget usage including layout management, network image loading, and state management with `StatefulWidget`.
+```link Demo : blablabal``` 
+
+Selamat datang di aplikasi **Lost & Found Kampus**! Aplikasi ini dirancang untuk memecahkan masalah klasik di lingkungan kampus: barang yang hilang atau tertinggal. Dengan aplikasi ini, mahasiswa bisa dengan mudah melaporkan barang yang mereka temukan atau mencari barang mereka yang hilang.
+
+Di balik antarmukanya yang sederhana, aplikasi ini menggunakan kombinasi local storage dan cloud computing agar bisa berjalan dengan responsif, handal, dan *real-time*.
 
 ---
 
-## 🚀 Getting Started
+## 🌟 Fitur Utama & Pemanfaatan Teknologi
 
-```bash
-flutter pub get
-flutter run
+### 1. Local Storage dengan Relational Database (SQLite)
+Aplikasi tidak selalu bergantung pada koneksi internet yang stabil. Untuk itu, kami merancang sistem **Offline-First**.
+* **Konsep CRUD Utuh:** Semua operasi Create, Read, Update, dan Delete dilakukan di penyimpanan lokal ponsel (menggunakan *package* `sqflite`) terlebih dahulu.
+* **Tabel Relasional:** Kami menerapkan konsep relasional antara tabel `items` (menyimpan detail laporan barang) dan tabel `categories` (menyimpan daftar kategori barang seperti Elektronik, Dokumen, dll). Ketika data ditampilkan, aplikasi melakukan *JOIN* agar id kategori berubah menjadi nama kategori yang mudah dibaca.
+* **Drafting System:** Fitur ini membuat pengguna bisa menyiapkan laporan beserta foto di tab "Draft Lokal" tanpa menghabiskan kuota internet, dan bebas merevisinya sebelum dipublikasikan.
+
+### 2. FIrebase Auth
+Setiap pengguna yang berinteraksi dengan aplikasi ini memiliki identitas yang aman dan terverifikasi.
+* **Keamanan Kredensial:** Aplikasi menggunakan **Firebase Authentication** untuk mengelola proses pendaftaran (Registrasi) dan Masuk (Login) menggunakan Email dan Password.
+* **State Persistence:** Sesi pengguna dipertahankan menggunakan metode `Stream` dari FirebaseAuth. Artinya, jika pengguna menutup aplikasi dan membukanya kembali besok, mereka tidak perlu repot-repot login ulang.
+* **Role-Based Access (Admin Panel):** Kami membuat jalur pintas otomatis khusus untuk peran admin. Jika ada yang *login* menggunakan kredensial `admin@gmail.com`, aplikasi akan langsung mengenalinya dan mengarahkan pengguna ke **Admin Panel**—sebuah layar khusus di mana admin memiliki kuasa penuh untuk melihat, menandai selesai, atau menghapus permanen setiap laporan yang ada di server.
+
+### 3. Cloud Firestore
+Setelah laporan selesai dibuat secara lokal, aplikasi mengizinkan pengguna untuk "menyinkronkan" (mengunggah) data tersebut ke server global.
+* **Arsitektur NoSQL Firestore:** Data diunggah ke koleksi `lost_items` di Firestore. Kami memilih Firestore karena kemampuannya dalam memproses data secara *real-time* ke semua perangkat yang terkoneksi.
+* **Pengkategorian Tampilan (Queries):** Di dalam aplikasi, data yang sudah di-sinkronisasi akan dihapus dari lokal, dan diklasifikasikan ke dua tempat menggunakan Query Firestore:
+  * **Laporan Saya:** Menggunakan filter Query `where('userId', isEqualTo: uid)` untuk hanya menampilkan laporan yang diunggah oleh pengguna tersebut.
+  * **Daftar Publik:** Menampilkan semua laporan barang dari semua pengguna, diurutkan berdasarkan waktu laporan agar informasi terbaru selalu berada di paling atas.
+
+### 4. Realtime Notifications
+Bayangkan Anda melaporkan kehilangan dompet, dan keesokan harinya ada yang menemukannya. Bagaimana Anda bisa tahu tanpa harus mengecek aplikasi setiap saat?
+* **Real-time Listener:** Kami membuat `FirestoreListenerService` yang berjalan di latar belakang aplikasi. Servis ini secara konstan berlangganan (*subscribe*) pada data laporan pengguna yang sedang login.
+* **Trigger Otomatis:** Ketika ada barang yang statusnya diubah menjadi "Sudah Diambil" (`isAvailable: false`) oleh Admin atau Penemu, *listener* ini akan langsung menangkap perubahan data dari server seketika itu juga.
+* **Local Push Notification:** Sebagai respons, aplikasi langsung menembakkan **Notifikasi Lokal** ke layar ponsel (*Heads-up notification* dengan suara) menggunakan *package* Awesome Notifications, memberi tahu Anda bahwa laporan Anda telah diselesaikan.
+
+### 5. Camera & Image Picker
+Aplikasi pelaporan barang tentu tidak lengkap tanpa bukti visual (foto). Kami memanfaatkan sumber daya perangkat keras (Hardware) pada ponsel menggunakan *Image Picker*.
+* **Akses Kamera Langsung:** Pengguna bisa langsung menyalakan **Kamera** dari dalam aplikasi untuk memotret dompet atau jam tangan yang baru saja mereka temukan di kelas.
+* **Akses Memori Lokal (Galeri):** Selain kamera, pengguna diberikan kebebasan untuk mengakses Galeri foto yang sudah ada di memori internal ponsel.
+* **Efisiensi Penyimpanan:** Agar beban aplikasi tetap ringan, gambar yang diambil dikompres dan dikonversi menjadi format *Base64 String* (teks murni) lalu disimpan langsung ke dalam kolom SQLite/Firestore, tanpa membebani penyimpanan *file storage* terpisah.
+
+---
+
+## 🧩 Arsitektur Design MVC
+
+```text
+lib/
+├── models/         # (Model) Berisi struktur blueprint data (item_model.dart, category_model.dart). Di sinilah definisi tabel database berada.
+├── screens/        # (View) Berisi murni antarmuka pengguna (UI) yang dirancang menggunakan Flutter Widgets (auth_screen, home_screen, dll).
+├── providers/      # (Controller) Tempat segala logika bisnis dan State Management berada. Menjembatani View dan Data.
+└── services/       # (Data Layer) Tempat aplikasi berkomunikasi dengan "dunia luar", baik itu ke memori SQLite ponsel maupun ke Server Firebase.
 ```
 
----
+## 🌳 Struktur Dasar Flutter Widget Tree
 
-## 📋 Requirements
-
-| Tool | Version |
-|------|---------|
-| Flutter | ≥ 3.0.0 |
-| Dart | ≥ 3.0.0 |
-| Platform | Android / Windows |
-
----
-
-## 🧩 Widget Documentation
-
-Penjelasan widget-widget yang digunakan, berurutan sesuai hierarki dari root ke leaf.
-
----
-
-### 1. `MaterialApp`
-
-The root widget of a Flutter application using Material Design. It wraps the entire app and provides global configurations such as the color theme and the initial page. Here, `home` is set to `RowColumnPage` as the main page.
-
----
-
-### 2. `Scaffold`
-
-A widget that provides the basic layout structure for a page. It acts as the "skeleton" of the page with dedicated slots for `appBar` and `body`. Without `Scaffold`, the page would not have a standard structure like a top bar and content area.
-
----
-
-### 3. `AppBar`
-
-A horizontal bar widget displayed at the top of the page. It shows the title **"My First App"** with a background color of `Colors.orange[200]` and centers the title using `centerTitle: true`.
-
----
-
-### 4. `Text` — *inside AppBar*
-
-A widget for displaying static text. It renders the title `"My First App"` in the AppBar with black text color via `TextStyle(color: Colors.black)`.
-
----
-
-### 5. `Column` — *main body*
-
-A layout widget that arranges its children **vertically**. It serves as the main content container of the page, stacking all elements (image, text, icons, counter) in a single centered column.
-
----
-
-### 6. `Container` › `AspectRatio` › `Container` › `Center` › `Image.network`
-
-A group of widgets for displaying an image from the internet.
-
-| Widget | Function |
-|--------|----------|
-| `Container` *(outer)* | Outer wrapper that controls margin and area size |
-| `AspectRatio` | Forces the image area to maintain a **1:1** ratio (square) for consistent proportions across screen sizes |
-| `Container` *(inner)* | Manages padding, margin, and background color `lightBlue[100]` |
-| `Center` | Centers the image within the container |
-| `Image.network` | Displays an image from URL `https://picsum.photos/200` using `BoxFit.cover` |
-
----
-
-### 7. `Container` › `Text` — *image description*
-
-| Widget | Function |
-|--------|----------|
-| `Container` | Controls width, padding, margin, and background color `pink[200]` |
-| `Text` | Displays the text `"What image is that"` as an image caption |
-
----
-
-### 8. `Container` › `Row` › `Column` × 3 — *icon categories*
-
-A group of widgets for displaying three icon categories horizontally.
-
-| Widget | Function |
-|--------|----------|
-| `Container` | Controls width, padding, margin, and background color `yellow[200]` |
-| `Row` | Arranges three icon columns **horizontally** with even spacing (`spaceEvenly`) |
-| `Column` + `Icon` + `Text` | Each displays one icon and its label: Food, Scenery, People |
-
----
-
-### 9. `CounterCard` — *StatefulWidget*
-
-A custom widget with a mutable **state**. It displays a counter number that increments each time the `+` button is pressed. It uses `setState()` to automatically update the UI when the state changes.
-
-| Widget | Function |
-|--------|----------|
-| `Container` | Styles the card with color `cyan[100]`, padding, and margin |
-| `Row` | Arranges the counter text and button **horizontally** with `spaceBetween` alignment |
-| `Text` | Displays `"Counter here: $_counter"` — the value updates dynamically based on state |
-| `Container` | Wraps the button with color `cyan[200]` |
-| `IconButton` | An `Icons.add` icon button — calls `_incrementCounter()` when pressed to increment the counter |
-
----
-
-## 🗂️ Widget Hierarchy
-
+```text
+MyApp (Akar Aplikasi)
+ └── MultiProvider (Menyuntikkan AuthProvider & ItemProvider ke seluruh lapisan UI)
+      └── MaterialApp (Pengatur Tema dan Navigasi Dasar)
+           └── Pengecekan Login:
+                │
+                ├── JIKA BELUM LOGIN: AuthScreen (Menampilkan form login)
+                │
+                └── JIKA SUDAH LOGIN:
+                     ├── Akun Admin (admin@gmail.com):
+                     │    └── AdminScreen (Scaffold)
+                     │         ├── StreamBuilder (Dashboard Statistik: Menunggu vs Selesai)
+                     │         └── Tab View: ListView.builder (Manajemen laporan publik)
+                     │
+                     └── Akun Mahasiswa Biasa:
+                          └── HomeScreen (Scaffold)
+                               ├── AppBar (Header & Tombol Logout)
+                               ├── Body (Tergantung Tab Navigasi Bawah)
+                               │    ├── Tab 0: Consumer<ItemProvider> (Daftar Draft dari SQLite)
+                               │    ├── Tab 1: StreamBuilder (Filter Laporan Saya dari Firestore)
+                               │    └── Tab 2: StreamBuilder (Feed Daftar Publik dari Firestore)
+                               │
+                               ├── BottomNavigationBar (Berpindah Tab)
+                               │
+                               └── FloatingActionButton (Tombol "+" Tambah Laporan)
+                                    └── Menavigasikan (Push) ke AddItemScreen (Input Form & Kamera)
 ```
-MyApp (StatelessWidget)
-└── MaterialApp
-    └── RowColumnPage (StatelessWidget)
-        └── Scaffold
-            ├── AppBar
-            │   └── Text ('My First App')
-            │       └── TextStyle (color: black)
-            │
-            └── Column
-                ├── Container
-                │   └── AspectRatio (ratio: 1.0)
-                │       └── Container (color: lightBlue[100])
-                │           └── Center
-                │               └── Image.network
-                │
-                ├── Container (color: pink[200])
-                │   └── Text ('What image is that')
-                │
-                ├── Container (color: yellow[200])
-                │   └── Row
-                │       ├── Column
-                │       │   ├── Icon (Icons.food_bank)
-                │       │   └── Text ('Food')
-                │       ├── Column
-                │       │   ├── Icon (Icons.landscape)
-                │       │   └── Text ('Scenery')
-                │       └── Column
-                │           ├── Icon (Icons.people)
-                │           └── Text ('People')
-                │
-                └── CounterCard (StatefulWidget)
-                    └── Container (color: cyan[100])
-                        └── Row
-                            ├── Text ('Counter here: $_counter')
-                            └── Container (color: cyan[200])
-                                └── IconButton (Icons.add)
-```
+
+## 💡 Kesimpulan 
+Secara keseluruhan, aplikasi Lost & Found Kampus ini sudah berhasil mengimplementasikan semua requirement tugas yang diberikan. Mulai dari pemakaian SQLite untuk fungsi offline, Firebase untuk sinkronisasi cloud dan login, hingga fitur tambahan seperti akses kamera dan notifikasi lokal, semuanya sudah berjalan dengan baik dan saling terhubung.
